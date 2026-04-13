@@ -1,5 +1,5 @@
 # 🐾 Nekogram
-[![Crowdin](https://badges.crowdin.net/e/a094217ac83905ae1625526d59bba8dc/localized.svg)](https://neko.crowdin.com/nekogram)  
+[![Crowdin](https://badges.crowdin.net/e/a094217ac83905ae1625526d59bba8dc/localized.svg)](https://neko.crowdin.com/nekogram)
 Nekogram is a third-party Telegram client with not many but useful modifications.
 
 - Website: https://nekogram.app
@@ -27,3 +27,5 @@ MTProto protocol manuals: https://core.telegram.org/mtproto
 Nekogram is forked from Telegram, thus most locales follows the translations of Telegram for Android, checkout https://translations.telegram.org/en/android/.
 
 As for the Nekogram specialized strings, we use Crowdin to translate Nekogram. Join project at https://neko.crowdin.com/nekogram. Help us bring Nekogram to the world!
+
+To build production release run ./gradlew -Dorg.gradle.jvmargs='-Xmx4g -XX:MaxMetaspaceSize=1g' :TMessagesProj_App:assembleRelease

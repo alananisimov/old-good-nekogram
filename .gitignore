@@ -16,3 +16,7 @@ TMessagesProj_AppHuawei/afat/
 /TMessagesProj/src/main/java/tw/nekomimi/nekogram/Extra.java
 google-services.json
 sentry.properties
+key.jks
+key.properties
+crash.log
+java_pid*.hprof

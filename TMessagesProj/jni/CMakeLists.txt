@@ -644,5 +644,7 @@ target_link_libraries(${NATIVE_LIB}
 #            c)
 #endif()
 
-include(AndroidNdkModules)
-android_ndk_import_module_cpufeatures()
+add_library(cpufeatures STATIC
+        ${ANDROID_NDK}/sources/android/cpufeatures/cpu-features.c)
+target_include_directories(cpufeatures PUBLIC
+        ${ANDROID_NDK}/sources/android/cpufeatures)

@@ -4,18 +4,28 @@ plugins {
     id 'io.sentry.android.gradle'
 }
 
+def sentryUploadsEnabled = ["SENTRY_AUTH_TOKEN", "SENTRY_ORG", "SENTRY_PROJECT"].every {
+    System.getenv(it)
+}
+
 dependencies {
     implementation project(':TMessagesProj')
 }
 
 sentry {
-    uploadNativeSymbols = true
-    includeSourceContext = true
+    uploadNativeSymbols = sentryUploadsEnabled
+    includeSourceContext = sentryUploadsEnabled
     additionalSourceDirsForSourceContext = [ '../TMessagesProj/src/main/java' ]
     autoInstallation {
         enabled = false
     }
     ignoredBuildTypes = ["debug"]
+}
+
+tasks.configureEach { task ->
+    if (!sentryUploadsEnabled && (task.name.startsWith("uploadSentry") || task.name.startsWith("sentryBundle"))) {
+        task.enabled = false
+    }
 }
 
 android {
