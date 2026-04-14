@@ -84,7 +84,8 @@ public class ChatActivityChannelButtonsLayout extends FrameLayout implements Fac
         container.setOutlineProvider(new ViewOutlineProvider() {
             @Override
             public void getOutline(View view, Outline outline) {
-                outline.setRoundRect(0, 0, view.getMeasuredWidth(), view.getMeasuredHeight(), dp(22));
+                // Ставим прямоугольный контур без скруглений
+                outline.setRect(0, 0, view.getMeasuredWidth(), view.getMeasuredHeight());
             }
         });
         addView(container, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 44, Gravity.CENTER_VERTICAL));
@@ -116,6 +117,7 @@ public class ChatActivityChannelButtonsLayout extends FrameLayout implements Fac
             final BoolAnimator visibilityAnimator = new BoolAnimator(animatorId, this,
                 CubicBezierInterpolator.EASE_OUT_QUINT, 300);
 
+            // Используем новый API (6 аргументов)
             final ChatActivityBlurredRoundButton button = ChatActivityBlurredRoundButton.create(
                 getContext(),
                 blurredBackgroundDrawableViewFactory,
@@ -169,8 +171,6 @@ public class ChatActivityChannelButtonsLayout extends FrameLayout implements Fac
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
         checkButtonsPositionsAndVisibility();
     }
-
-
 
     private static final int CENTER_ACCENT_BACKGROUND_ANIMATOR_ID = 99;
     private final BoolAnimator animatorCenterAccentBackground = new BoolAnimator(
@@ -354,7 +354,9 @@ public class ChatActivityChannelButtonsLayout extends FrameLayout implements Fac
             );
             backgroundAccentPaint.setColor(accentColor);
             backgroundAccentPaint.setAlpha(accentAlpha);
-            canvas.drawRoundRect(tmpRect, dp(19), dp(19), backgroundAccentPaint);
+            
+            // Используем жесткий прямоугольник вместо скругленного (drawRoundRect)
+            canvas.drawRect(tmpRect, backgroundAccentPaint);
         }
 
         super.dispatchDraw(canvas);
@@ -374,6 +376,7 @@ public class ChatActivityChannelButtonsLayout extends FrameLayout implements Fac
         private ButtonHolder(ChatActivityBlurredRoundButton button, BoolAnimator visibilityAnimator) {
             this.button = button;
             this.visibilityAnimator = visibilityAnimator;
+
         }
     }
 }

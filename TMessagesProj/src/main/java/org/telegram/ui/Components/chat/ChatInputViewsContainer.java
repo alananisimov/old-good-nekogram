@@ -5,6 +5,7 @@ import static org.telegram.messenger.AndroidUtilities.dp;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Path;
+import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.Build;
@@ -24,10 +25,12 @@ import org.telegram.ui.Components.inset.InAppKeyboardInsetView;
 import org.telegram.ui.Components.inset.WindowInsetsProvider;
 
 public class ChatInputViewsContainer extends FrameLayout {
-    public static final int INPUT_BUBBLE_RADIUS = 22;
-    public static final int INPUT_KEYBOARD_RADIUS = 29;
+    // ПОЛНОСТЬЮ УБИРАЕМ СКРУГЛЕНИЯ
+    public static final int INPUT_BUBBLE_RADIUS = 0;
+    public static final int INPUT_KEYBOARD_RADIUS = 0;
 
-    public static final int INPUT_BUBBLE_BOTTOM = 9;
+    // ПОЛНОСТЬЮ УБИРАЕМ ЗАЗОР СНИЗУ
+    public static final int INPUT_BUBBLE_BOTTOM = 0;
 
     private WindowInsetsProvider windowInsetsProvider;
 
@@ -71,13 +74,25 @@ public class ChatInputViewsContainer extends FrameLayout {
         this.windowInsetsProvider = windowInsetsProvider;
     }
 
-
-
     private BlurredBackgroundDrawable blurredBackgroundDrawable;
     private BlurredBackgroundDrawable underKeyboardBackgroundDrawable;
+    private final Paint solidBackgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private boolean useBlurBackground = true;
+    private int inputBubbleAlpha = 255;
+
+    public void setUseBlurBackground(boolean useBlurBackground) {
+        this.useBlurBackground = useBlurBackground;
+        invalidate();
+    }
+
+    public void setSolidBackgroundColor(int color) {
+        solidBackgroundPaint.setColor(color);
+        invalidate();
+    }
+
     public void setInputIslandBubbleDrawable(BlurredBackgroundDrawable drawable) {
         blurredBackgroundDrawable = drawable;
-        blurredBackgroundDrawable.setPadding(dp(7));
+        blurredBackgroundDrawable.setPadding(dp(0)); 
         blurredBackgroundDrawable.setRadius(dp(INPUT_BUBBLE_RADIUS));
     }
 
@@ -95,7 +110,6 @@ public class ChatInputViewsContainer extends FrameLayout {
         invalidate();
     }
 
-
     @NonNull
     public FrameLayout getInputIslandBubbleContainer() {
         return inputIslandBubbleContainer;
@@ -112,8 +126,6 @@ public class ChatInputViewsContainer extends FrameLayout {
         checkViewsPositions();
         checkInAppKeyboardChild();
     }
-
-
 
     private void checkInAppKeyboardViewHeight() {
         LayoutParams lp = (LayoutParams) inAppKeyboardBubbleContainer.getLayoutParams();
@@ -140,7 +152,7 @@ public class ChatInputViewsContainer extends FrameLayout {
             final int r = dp(INPUT_KEYBOARD_RADIUS);
             tmpRectF.set(0, getMeasuredHeight() - imeBottomInset, getMeasuredWidth(), getMeasuredHeight());
             underKeyboardPath.rewind();
-            underKeyboardPath.addRoundRect(tmpRectF, new float[] {r, r, r, r, 0, 0, 0, 0}, Path.Direction.CW);
+            underKeyboardPath.addRect(tmpRectF, Path.Direction.CW);
             underKeyboardPath.close();
             invalidate();
         }
@@ -165,18 +177,7 @@ public class ChatInputViewsContainer extends FrameLayout {
         checkInAppKeyboardChild();
 
         if (underKeyboardBackgroundDrawable != null) {
-            int leftBottomRadius = 0;
-            int rightBottomRadius = 0;
-            if (Build.VERSION.SDK_INT >= 31) {
-                final WindowInsets insets = getRootWindowInsets();
-                if (insets != null) {
-                    final RoundedCorner bottomLeft = insets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_LEFT);
-                    final RoundedCorner bottomRight = insets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_RIGHT);
-                    leftBottomRadius = bottomLeft == null ? 0 : bottomLeft.getRadius();
-                    rightBottomRadius = bottomRight == null ? 0 : bottomRight.getRadius();
-                }
-            }
-            underKeyboardBackgroundDrawable.setRadius(dp(INPUT_KEYBOARD_RADIUS), dp(INPUT_KEYBOARD_RADIUS), rightBottomRadius, leftBottomRadius, true);
+            underKeyboardBackgroundDrawable.setRadius(0, 0, 0, 0, true);
         }
     }
 
@@ -184,7 +185,6 @@ public class ChatInputViewsContainer extends FrameLayout {
         inputIslandBubbleContainer.setTranslationY(-maxBottomInset - dp(INPUT_BUBBLE_BOTTOM));
         inAppKeyboardBubbleContainer.setTranslationY(inAppKeyboardBubbleContainer.getMeasuredHeight() - imeBottomInset);
     }
-
 
     private void checkInAppKeyboardChild() {
         final int navbarHeight = windowInsetsProvider.getCurrentNavigationBarInset();
@@ -200,15 +200,11 @@ public class ChatInputViewsContainer extends FrameLayout {
         }
     }
 
-
-
-    /* */
-
     private float inputBubbleOffsetLeft;
     private float inputBubbleOffsetRight;
-
     private float inputBubbleHeight;
     private int inputBubbleHeightRound;
+
     public void setInputBubbleHeight(float height) {
         inputBubbleHeight = height;
         inputBubbleHeightRound = Math.round(inputBubbleHeight);
@@ -242,33 +238,47 @@ public class ChatInputViewsContainer extends FrameLayout {
         checkInAppKeyboardChild();
     }
 
-    /* Render */
-
     private final Rect tmpRect = new Rect();
     private final RectF tmpRectF = new RectF();
 
     @Override
     protected void dispatchDraw(@NonNull Canvas canvas) {
-        underKeyboardBackgroundDrawable.setBounds(
-            0,
-            getMeasuredHeight() - (int) imeBottomInset,
-            getMeasuredWidth(),
-            Math.max(getMeasuredHeight(), getMeasuredHeight() - (int) imeBottomInset + dp(INPUT_KEYBOARD_RADIUS * 2))
-        );
+        if (underKeyboardBackgroundDrawable != null) {
+            underKeyboardBackgroundDrawable.setBounds(
+                0,
+                getMeasuredHeight() - (int) imeBottomInset,
+                getMeasuredWidth(),
+                getMeasuredHeight()
+            );
+        }
 
         final int blurTop = getMeasuredHeight() - currentBlurredHeight;
+        
+        int rectTop = blurTop + (int) bubbleInputTranlationY;
+        
+        // РЕШЕНИЕ ПРОБЛЕМЫ ПРОЛАГОВ И НАВБАРА:
+        // Мы ВСЕГДА растягиваем прямоугольник до самого низа экрана.
+        int rectBottom = getMeasuredHeight();
 
-        tmpRect.set(
-            Math.round(inputBubbleOffsetLeft), 0,
-            getMeasuredWidth() - Math.round(inputBubbleOffsetRight), inputBubbleHeightRound);
-        tmpRect.inset(0, -dp(7));
-        tmpRect.offset(0, blurTop + (int) bubbleInputTranlationY);
+        // Рисуем от края до края по ширине
+        tmpRect.set(0, rectTop, getMeasuredWidth(), rectBottom);
 
-        blurredBackgroundDrawable.setBounds(tmpRect);
-        blurredBackgroundDrawable.draw(canvas);
+        if (useBlurBackground && blurredBackgroundDrawable != null) {
+            blurredBackgroundDrawable.setBounds(tmpRect);
+            blurredBackgroundDrawable.draw(canvas);
+        } else {
+            tmpRectF.set(tmpRect);
+            solidBackgroundPaint.setAlpha(inputBubbleAlpha);
+            canvas.drawRect(tmpRectF, solidBackgroundPaint);
+        }
 
         if (needDrawInAppKeyboard) {
-            underKeyboardBackgroundDrawable.draw(canvas);
+            if (useBlurBackground && underKeyboardBackgroundDrawable != null) {
+                underKeyboardBackgroundDrawable.draw(canvas);
+            } else {
+                solidBackgroundPaint.setAlpha(255);
+                canvas.drawPath(underKeyboardPath, solidBackgroundPaint);
+            }
         }
 
         super.dispatchDraw(canvas);
@@ -289,10 +299,6 @@ public class ChatInputViewsContainer extends FrameLayout {
 
         return result;
     }
-
-
-
-
 
     private BlurredBackgroundWithFadeDrawable backgroundWithFadeDrawable;
 
@@ -315,10 +321,11 @@ public class ChatInputViewsContainer extends FrameLayout {
     }
 
     public void setInputBubbleAlpha(int alpha) {
+        inputBubbleAlpha = alpha;
         if (blurredBackgroundDrawable != null) {
             blurredBackgroundDrawable.setAlpha(alpha);
         }
-
+        invalidate();
     }
 
     private void checkDrawableBounds() {
@@ -335,7 +342,6 @@ public class ChatInputViewsContainer extends FrameLayout {
             invalidate(0, Math.max(0, Math.min(oldBound, newBound)), getMeasuredWidth(), getMeasuredHeight());
         }
     }
-
 
     private boolean captured;
 

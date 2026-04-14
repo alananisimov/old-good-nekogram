@@ -399,6 +399,8 @@ public class ChatActivity extends BaseFragment implements
     private final @Nullable BlurredBackgroundSourceRenderNode glassBackgroundSourceFrostedRenderNode;
     private final @NonNull BlurredBackgroundDrawableViewFactory glassBackgroundDrawableFactory;
     private final @NonNull BlurredBackgroundDrawableViewFactory glassBackgroundDrawableFactoryFrosted;
+    private final @NonNull BlurredBackgroundDrawableViewFactory glassBackgroundDrawableFactoryNoLiquid;
+    private final @NonNull BlurredBackgroundDrawableViewFactory glassBackgroundDrawableFactoryFrostedNoLiquid;
 
     private final @Nullable BlurredBackgroundSourceRenderNode navbarContentSourceMessages;  // blurred messages list source
     private final @Nullable BlurredBackgroundDrawable navbarContentSourceMessagesDrawable;  // blurred messages list drawable
@@ -2620,12 +2622,14 @@ public class ChatActivity extends BaseFragment implements
             navbarContentSourceMessagesDrawable = navbarContentSourceMessages.createDrawable();
 
             glassBackgroundDrawableFactoryFrosted = new BlurredBackgroundDrawableViewFactory(glassBackgroundSourceFrostedRenderNode);
+            glassBackgroundDrawableFactoryFrostedNoLiquid = new BlurredBackgroundDrawableViewFactory(glassBackgroundSourceFrostedRenderNode);
             glassBackgroundDrawableFactoryFrosted.setLiquidGlassEffectAllowed(LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS));
 
             if (LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS)) {
                 glassBackgroundSourceRenderNode = new BlurredBackgroundSourceRenderNode(navbarContentSourceWallpaper);
                 glassBackgroundSourceRenderNode.setOnDrawablesRelativePositionChangeListener(this::invalidateMergedVisibleBlurredPositionsAndSourcesPositions);
                 glassBackgroundDrawableFactory = new BlurredBackgroundDrawableViewFactory(glassBackgroundSourceRenderNode);
+                glassBackgroundDrawableFactoryNoLiquid = new BlurredBackgroundDrawableViewFactory(glassBackgroundSourceRenderNode);
                 glassBackgroundDrawableFactory.setLiquidGlassEffectAllowed(LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS));
 
                 navbarContentSourceWallpaperAndMessagesRenderNode = null;
@@ -2633,6 +2637,7 @@ public class ChatActivity extends BaseFragment implements
             } else {
                 glassBackgroundSourceRenderNode = null;
                 glassBackgroundDrawableFactory = glassBackgroundDrawableFactoryFrosted;
+                glassBackgroundDrawableFactoryNoLiquid = glassBackgroundDrawableFactoryFrostedNoLiquid;
                 navbarContentSourceWallpaperAndMessagesRenderNode = new BlurredBackgroundSourceRenderNode(null);
                 navbarContentSourceWallpaperAndMessagesRenderNode.setOnDrawablesRelativePositionChangeListener(this::invalidateMergedVisibleBlurredPositionsAndSourcesPositions);
                 navbarContentDrawableFactory = new BlurredBackgroundDrawableViewFactory(navbarContentSourceWallpaperAndMessagesRenderNode);
@@ -2650,12 +2655,16 @@ public class ChatActivity extends BaseFragment implements
 
             glassBackgroundDrawableFactory = new BlurredBackgroundDrawableViewFactory(navbarContentSourceWallpaper);
             glassBackgroundDrawableFactoryFrosted = new BlurredBackgroundDrawableViewFactory(navbarContentSourceWallpaper);
+            glassBackgroundDrawableFactoryNoLiquid = glassBackgroundDrawableFactory;
+            glassBackgroundDrawableFactoryFrostedNoLiquid = glassBackgroundDrawableFactoryFrosted;
             navbarContentDrawableFactory = new BlurredBackgroundDrawableViewFactory(navbarContentSourceWallpaper);
         }
 
         navbarContentDrawableFactory.setLinkedViewsRef(glassAttachedViews);
         glassBackgroundDrawableFactory.setLinkedViewsRef(glassAttachedViews);
         glassBackgroundDrawableFactoryFrosted.setLinkedViewsRef(glassAttachedViews);
+        glassBackgroundDrawableFactoryNoLiquid.setLinkedViewsRef(glassAttachedViews);
+        glassBackgroundDrawableFactoryFrostedNoLiquid.setLinkedViewsRef(glassAttachedViews);
     }
 
     @Override
@@ -4585,6 +4594,8 @@ public class ChatActivity extends BaseFragment implements
 
         glassBackgroundDrawableFactory.setSourceRootView(viewPositionWatcher, contentView);
         glassBackgroundDrawableFactoryFrosted.setSourceRootView(viewPositionWatcher, contentView);
+        glassBackgroundDrawableFactoryNoLiquid.setSourceRootView(viewPositionWatcher, contentView);
+        glassBackgroundDrawableFactoryFrostedNoLiquid.setSourceRootView(viewPositionWatcher, contentView);
         navbarContentDrawableFactory.setSourceRootView(viewPositionWatcher, contentView);
 
         contentView.needBlur = false;
@@ -4601,10 +4612,13 @@ public class ChatActivity extends BaseFragment implements
         chatInputViewsContainer.setClipChildren(false);
         chatInputViewsContainer.setBackgroundWithFadeDrawable(fadeDrawable);
         chatInputViewsContainer.setWindowInsetsProvider(windowInsetsStateHolder);
+        chatInputViewsContainer.setUseBlurBackground(false);
+        chatInputViewsContainer.setSolidBackgroundColor(getThemedColor(Theme.key_chat_messagePanelBackground));
+        // Keep the footer/input area on the older frosted style even if liquid glass is enabled globally.
         chatInputViewsContainer.setInputIslandBubbleDrawable(
-            glassBackgroundDrawableFactory.create(chatInputViewsContainer, blurredBackgroundColorProvider));
+            glassBackgroundDrawableFactoryNoLiquid.create(chatInputViewsContainer, blurredBackgroundColorProvider));
         chatInputViewsContainer.setUnderKeyboardBackgroundDrawable(
-            glassBackgroundDrawableFactoryFrosted.create(chatInputViewsContainer, blurredBackgroundColorProvider));
+            glassBackgroundDrawableFactoryFrostedNoLiquid.create(chatInputViewsContainer, blurredBackgroundColorProvider));
 
 
         chatInputBubbleContainer = chatInputViewsContainer.getInputIslandBubbleContainer();
@@ -8322,7 +8336,7 @@ public class ChatActivity extends BaseFragment implements
         bottomOverlay.addView(bottomOverlayText, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.CENTER));
         
         
-        bottomChannelButtonsLayout = new ChatActivityChannelButtonsLayout(context, resourceProvider, blurredBackgroundColorProvider, glassBackgroundDrawableFactory) {
+        bottomChannelButtonsLayout = new ChatActivityChannelButtonsLayout(context, resourceProvider, blurredBackgroundColorProvider, glassBackgroundDrawableFactoryNoLiquid) {
             @Override
             public void setVisibility(int visibility) {
                 super.setVisibility(visibility);
@@ -8411,11 +8425,11 @@ public class ChatActivity extends BaseFragment implements
                 }
                 cellFlickerDrawable.setParentWidth(getMeasuredWidth());
                 AndroidUtilities.rectTmp.set(0, 0, getMeasuredWidth(), getMeasuredHeight());
-                cellFlickerDrawable.draw(canvas, AndroidUtilities.rectTmp, AndroidUtilities.dp(22), null);
+                cellFlickerDrawable.draw(canvas, AndroidUtilities.rectTmp, AndroidUtilities.dp(12), null);
                 invalidate();
             }
         };
-        bottomOverlayStartButton.setBackground(Theme.AdaptiveRipple.filledRect(getThemedColor(Theme.key_featuredStickers_addButton), 22));
+        bottomOverlayStartButton.setBackground(Theme.AdaptiveRipple.filledRect(getThemedColor(Theme.key_featuredStickers_addButton), 12));
         bottomOverlayStartButton.setTextColor(getThemedColor(Theme.key_featuredStickers_buttonText));
         bottomOverlayStartButton.setText(LocaleController.getString(R.string.BotStart));
         bottomOverlayStartButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
@@ -41517,6 +41531,7 @@ public class ChatActivity extends BaseFragment implements
                 translateButton.updateColors();
             }
             if (chatInputViewsContainer != null) {
+                chatInputViewsContainer.setSolidBackgroundColor(getThemedColor(Theme.key_chat_messagePanelBackground));
                 chatInputViewsContainer.updateColors();
             }
             if (sideControlsButtonsLayout != null) {
